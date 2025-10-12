@@ -40,7 +40,7 @@ pipeline {
                 script {
                     echo "Deploying with Docker Compose..."
 
-                    //Add Telegram credentials into .env before upload
+                    // Add Telegram credentials into .env before upload
                     sh """
                     echo "Updating .env with Telegram credentials..."
                     cat > ${DotEnvFile} <<EOF
@@ -50,19 +50,23 @@ EOF
                     """
 
                     sshagent(['ec2']) {
-                        // Upload files once to reduce redundant SCP commands
+                        // Upload both files to /home/ubuntu/mywebsite/
                         sh """
-                        scp -o StrictHostKeyChecking=no ${DotEnvFile} ${DockerComposeFile} ubuntu@${EC2_IP}:/home/ubuntu
+                        scp -o StrictHostKeyChecking=no ${DotEnvFile} ${DockerComposeFile} ubuntu@${EC2_IP}:/home/ubuntu/mywebsite/
 
-                        # Inject Telegram API credentials into the remote environment
+                        # Deploy from within the mywebsite directory
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "
+                            cd /home/ubuntu/mywebsite &&
                             export TELEGRAM_API_ID='${TELEGRAM_API_ID}' &&
                             export TELEGRAM_API_HASH='${TELEGRAM_API_HASH}' &&
-                            docker compose -f /home/ubuntu/${DockerComposeFile} --env-file /home/ubuntu/${DotEnvFile} down &&
-                            docker compose -f /home/ubuntu/${DockerComposeFile} --env-file /home/ubuntu/${DotEnvFile} up -d
+                            docker compose --env-file .env down &&
+                            docker compose --env-file .env up -d --build
                         "
                         """
                     }
+
+                    // Optional cleanup of local .env file from Jenkins
+                    sh "rm -f ${DotEnvFile}"
                 }
             }
         }
