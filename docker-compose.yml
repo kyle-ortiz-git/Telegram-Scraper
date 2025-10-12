@@ -17,7 +17,7 @@ services:
       AWS_DEFAULT_REGION: ${REGION}
       PYTHONUNBUFFERED: 1
 
-      # ✅ Added Telegram credentials (from Jenkins or .env)
+      # dded Telegram credentials (from Jenkins or .env)
       TELEGRAM_API_ID: ${TELEGRAM_API_ID}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
 
