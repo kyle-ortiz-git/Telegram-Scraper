@@ -10,11 +10,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
-    python3.11 \
-    python3.11-venv \
-    python3.11-distutils \
+    python3 \
     python3-pip \
-    && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
     && docker-php-ext-install pdo pdo_mysql mysqli \
     && a2enmod rewrite \
     && apt-get clean \
