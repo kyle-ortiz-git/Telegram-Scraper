@@ -9,11 +9,9 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     zip \
     unzip \
-    curl \
     git \
     python3 \
     python3-pip \
-    ca-certificates \
     && docker-php-ext-install pdo pdo_mysql mysqli \
     && a2enmod rewrite \
     && apt-get clean \
@@ -34,14 +32,10 @@ COPY requirements.txt /opt/requirements.txt
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Install Python dependencies including pyaudioop
-# Uses raw GitHub tarball instead of ZIP (more reliable inside Docker)
-RUN curl -L https://codeload.github.com/spatialaudio/pyaudioop/tar.gz/master -o /tmp/pyaudioop.tar.gz && \
-    mkdir -p /tmp/pyaudioop && \
-    tar -xzf /tmp/pyaudioop.tar.gz -C /tmp/pyaudioop --strip-components=1 && \
-    pip3 install --break-system-packages /tmp/pyaudioop && \
-    pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt && \
-    rm -rf /tmp/pyaudioop /tmp/pyaudioop.tar.gz
+
+# Install Python dependencies for the scraper
+RUN pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
+
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
