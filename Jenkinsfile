@@ -44,9 +44,9 @@ pipeline {
                     sh """
                     echo "Updating .env with Telegram credentials..."
                     cat > ${DotEnvFile} <<EOF
-TELEGRAM_API_ID=${TELEGRAM_API_ID}
-TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
-EOF
+					TELEGRAM_API_ID=${TELEGRAM_API_ID}
+					TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+					EOF
                     """
 
                     sshagent(['ec2']) {
@@ -54,7 +54,6 @@ EOF
                         sh """
                         scp -o StrictHostKeyChecking=no ${DotEnvFile} ${DockerComposeFile} ubuntu@${EC2_IP}:/home/ubuntu/mywebsite/
 
-                        # Deploy from within the mywebsite directory
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "
                             cd /home/ubuntu/mywebsite &&
                             export TELEGRAM_API_ID='${TELEGRAM_API_ID}' &&
@@ -65,7 +64,7 @@ EOF
                         """
                     }
 
-                    // Optional cleanup of local .env file from Jenkins
+                    Cleanup of local .env file from Jenkins
                     sh "rm -f ${DotEnvFile}"
                 }
             }
