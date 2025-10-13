@@ -37,8 +37,6 @@ services:
       # Mount scraper project (so downloads/splits persist locally)
       - ./telegram_scraping:/opt/telegram_scraping
 
-      # Optional: mount .env for your scraper if needed
-      - ./.env:/opt/telegram_scraping/.env
 
     # Default command runs both Apache and the scraper
     command: >
