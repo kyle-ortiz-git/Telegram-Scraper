@@ -18,6 +18,7 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker Image..."
+                    // JOB_NAME and BUILD_NUMBER = Golbal Jenkins Variables, "." current working directory
                     sh "docker build -t ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER} ."
                 }
             }
@@ -28,6 +29,8 @@ pipeline {
                 script {
                     echo "Pushing Image to DockerHub..."
                     withCredentials([usernamePassword(credentialsId: 'docker-login', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        //export with password standard input for security
+                        // echo helps too
                         sh "echo $PASS | docker login -u $USER --password-stdin"
                         sh "docker push ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER}"
                     }
