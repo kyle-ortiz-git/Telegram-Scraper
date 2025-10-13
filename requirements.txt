@@ -1,5 +1,4 @@
 telethon
 pydub
-pyaudioop
 python-dateutil
 boto3
