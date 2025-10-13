@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
 	ffmpeg \
+	ffprobe\
     && docker-php-ext-install pdo pdo_mysql mysqli \
     && a2enmod rewrite \
     && apt-get clean \
