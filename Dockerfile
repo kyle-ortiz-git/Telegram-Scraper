@@ -34,14 +34,14 @@ COPY requirements.txt /opt/requirements.txt
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Install Python dependencies for the scraper
-# Includes pyaudioop from GitHub ZIP archive to bypass git auth issues
-RUN curl -L https://github.com/spatialaudio/pyaudioop/archive/refs/heads/master.zip -o /tmp/pyaudioop.zip && \
-    unzip /tmp/pyaudioop.zip -d /tmp && \
-    cd /tmp/pyaudioop-master && \
-    pip3 install --break-system-packages . && \
+# Install Python dependencies including pyaudioop
+# Uses raw GitHub tarball instead of ZIP (more reliable inside Docker)
+RUN curl -L https://codeload.github.com/spatialaudio/pyaudioop/tar.gz/master -o /tmp/pyaudioop.tar.gz && \
+    mkdir -p /tmp/pyaudioop && \
+    tar -xzf /tmp/pyaudioop.tar.gz -C /tmp/pyaudioop --strip-components=1 && \
+    pip3 install --break-system-packages /tmp/pyaudioop && \
     pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt && \
-    rm -rf /tmp/pyaudioop.zip /tmp/pyaudioop-master
+    rm -rf /tmp/pyaudioop /tmp/pyaudioop.tar.gz
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
