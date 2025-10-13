@@ -10,8 +10,12 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
-    python3 \
-    python3-pip \
+    python3.11 \
+    python3.11-venv \
+    python3.11-distutils \
+    curl \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
     && docker-php-ext-install pdo pdo_mysql mysqli \
     && a2enmod rewrite \
     && apt-get clean \
