@@ -9,9 +9,11 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     zip \
     unzip \
+    curl \
     git \
     python3 \
     python3-pip \
+    ca-certificates \
     && docker-php-ext-install pdo pdo_mysql mysqli \
     && a2enmod rewrite \
     && apt-get clean \
@@ -33,9 +35,13 @@ COPY requirements.txt /opt/requirements.txt
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Install Python dependencies for the scraper
-RUN pip3 install --break-system-packages git+https://github.com/spatialaudio/pyaudioop.git && \
-    pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
-
+# Includes pyaudioop from GitHub ZIP archive to bypass git auth issues
+RUN curl -L https://github.com/spatialaudio/pyaudioop/archive/refs/heads/master.zip -o /tmp/pyaudioop.zip && \
+    unzip /tmp/pyaudioop.zip -d /tmp && \
+    cd /tmp/pyaudioop-master && \
+    pip3 install --break-system-packages . && \
+    pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt && \
+    rm -rf /tmp/pyaudioop.zip /tmp/pyaudioop-master
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
