@@ -34,7 +34,8 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 
 # Install Python dependencies for the scraper
-RUN pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
+RUN pip3 install --break-system-packages audioop-lts && \
+    pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
 
 
 # Set permissions
