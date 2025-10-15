@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     build-essential \
     python3-dev \
+    netcat-traditional \           # <-- allows healthcheck/wait-for-db
     && docker-php-ext-install pdo pdo_mysql mysqli \
     && a2enmod rewrite \
     && apt-get clean \
@@ -23,7 +24,7 @@ RUN apt-get update && apt-get install -y \
 # Install Composer globally
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Copy application code
+# Copy application code and scraper
 COPY ./app /var/www/html
 COPY ./telegram_scraping /opt/telegram_scraping
 COPY requirements.txt /opt/requirements.txt
@@ -36,6 +37,10 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 RUN pip3 install --no-cache-dir --break-system-packages audioop-lts && \
     pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
 
+# Copy in a wait script to delay startup until DB is ready
+COPY wait-for-db.sh /usr/local/bin/wait-for-db.sh
+RUN chmod +x /usr/local/bin/wait-for-db.sh
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html && \
     chmod -R 755 /var/www/html
@@ -43,5 +48,5 @@ RUN chown -R www-data:www-data /var/www/html && \
 # Expose Apache port
 EXPOSE 80
 
-# Start both Apache and the Python scraper automatically
-CMD ["bash", "-c", "python3 /opt/telegram_scraping/scraping.py & apache2-foreground"]
+# Run wait-for-db, then Python scraper and Apache
+CMD ["bash", "-c", "/usr/local/bin/wait-for-db.sh db 3306 && python3 /opt/telegram_scraping/scraping.py & apache2-foreground"]
