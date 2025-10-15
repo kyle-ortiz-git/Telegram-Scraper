@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     build-essential \
     python3-dev \
-    netcat-traditional \           # <-- allows healthcheck/wait-for-db
+    netcat-traditional \
     && docker-php-ext-install pdo pdo_mysql mysqli \
     && a2enmod rewrite \
     && apt-get clean \
@@ -48,5 +48,5 @@ RUN chown -R www-data:www-data /var/www/html && \
 # Expose Apache port
 EXPOSE 80
 
-# Run wait-for-db, then Python scraper and Apache
+# Wait for DB, then start scraper + Apache
 CMD ["bash", "-c", "/usr/local/bin/wait-for-db.sh db 3306 && python3 /opt/telegram_scraping/scraping.py & apache2-foreground"]
