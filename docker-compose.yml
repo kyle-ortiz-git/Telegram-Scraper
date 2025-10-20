@@ -28,25 +28,25 @@ services:
       - app-network
 
   # MySQL Database
-  db:
-    image: mysql:8.0.36
-    container_name: mysql-db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      retries: 10
-      timeout: 5s
-      start_period: 10s
+  #db:
+  #  image: mysql:8.0.36
+  #  container_name: mysql-db
+  #  restart: always
+  #  environment:
+  #    MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  #    MYSQL_DATABASE: ${MYSQL_DATABASE}
+  #    MYSQL_USER: ${MYSQL_USER}
+  #    MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+  #  volumes:
+  #    - db_data:/var/lib/mysql
+  #  networks:
+  #    - app-network
+  #  healthcheck:
+  #    test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #    interval: 5s
+  #    retries: 10
+  #    timeout: 5s
+  #    start_period: 10s
 
   # phpMyAdmin
   phpmyadmin:
@@ -66,8 +66,6 @@ services:
     networks:
       - app-network
 
-volumes:
-  db_data:
 
 networks:
   app-network:
