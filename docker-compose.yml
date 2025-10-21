@@ -18,8 +18,8 @@ services:
       PYTHONUNBUFFERED: 1
       TELEGRAM_API_ID: ${TELEGRAM_API_ID}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
-    depends_on:
-      - db
+#    depends_on:
+#      - db
     restart: always
     volumes:
       - ./app:/var/www/html
