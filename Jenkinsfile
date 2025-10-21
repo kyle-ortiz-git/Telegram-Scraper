@@ -7,30 +7,33 @@ pipeline {
         DockerComposeFile = 'docker-compose.yml'
         DotEnvFile = '.env'
 
-        // Secure Telegram API credentials
+        // Telegram API
         TELEGRAM_API_ID   = credentials('TELEGRAM_API_ID')
         TELEGRAM_API_HASH = credentials('TELEGRAM_API_HASH')
+
+        // AWS credentials
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_DEFAULT_REGION     = credentials('AWS_DEFAULT_REGION')
+        S3_BUCKET              = credentials('S3_BUCKET')
     }
 
     stages {
 
-        stage("buildImage") {
+        stage("Build Image") {
             steps {
                 script {
-                    echo "Building Docker Image..."
-                    // JOB_NAME and BUILD_NUMBER = Golbal Jenkins Variables, "." current working directory
+                    echo "🛠️ Building Docker Image..."
                     sh "docker build -t ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER} ."
                 }
             }
         }
 
-        stage("pushImage") {
+        stage("Push Image") {
             steps {
                 script {
-                    echo "Pushing Image to DockerHub..."
+                    echo "📦 Pushing Image to DockerHub..."
                     withCredentials([usernamePassword(credentialsId: 'docker-login', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                        //export with password standard input for security
-                        // echo helps too
                         sh "echo $PASS | docker login -u $USER --password-stdin"
                         sh "docker push ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER}"
                     }
@@ -38,36 +41,39 @@ pipeline {
             }
         }
 
-        stage("deployCompose") {
+        stage("Deploy Compose") {
             steps {
                 script {
-                    echo "Deploying with Docker Compose..."
+                    echo "🚀 Deploying on EC2 via Docker Compose..."
 
-                    // Add Telegram credentials into .env before upload
+                    // Write all environment variables into .env
                     sh """
-                    echo "Updating .env with Telegram credentials..."
+                    echo "Writing Jenkins credentials into .env..."
                     cat > ${DotEnvFile} <<EOF
-					TELEGRAM_API_ID=${TELEGRAM_API_ID}
-					TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
-					EOF
+                    TELEGRAM_API_ID=${TELEGRAM_API_ID}
+                    TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+                    AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+                    AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+                    AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+                    S3_BUCKET=${S3_BUCKET}
+                    EOF
                     """
 
                     sshagent(['ec2']) {
-                        // Upload both files to /home/ubuntu/mywebsite/
                         sh """
+                        echo "📤 Uploading files to EC2..."
                         scp -o StrictHostKeyChecking=no ${DotEnvFile} ${DockerComposeFile} ubuntu@${EC2_IP}:/home/ubuntu/mywebsite/
 
+                        echo "🔁 Restarting Docker Compose on EC2..."
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "
                             cd /home/ubuntu/mywebsite &&
-                            export TELEGRAM_API_ID='${TELEGRAM_API_ID}' &&
-                            export TELEGRAM_API_HASH='${TELEGRAM_API_HASH}' &&
-                            docker compose --env-file .env down &&
+                            docker compose --env-file .env down -v &&
                             docker compose --env-file .env up -d --build
                         "
                         """
                     }
 
-                    Cleanup of local .env file from Jenkins
+                    echo "🧹 Cleaning up local .env file..."
                     sh "rm -f ${DotEnvFile}"
                 }
             }
