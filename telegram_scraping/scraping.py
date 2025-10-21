@@ -16,7 +16,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 # === ENVIRONMENT VARIABLES ===
 api_id = int(os.getenv("TELEGRAM_API_ID"))
 api_hash = os.getenv("TELEGRAM_API_HASH")
-aws_region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+aws_region = os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
 s3_bucket = os.getenv("S3_BUCKET", "telegram-qna-splits")
 
 client = TelegramClient('anon', api_id, api_hash)

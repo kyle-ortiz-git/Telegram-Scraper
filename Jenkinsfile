@@ -14,7 +14,7 @@ pipeline {
         // AWS credentials
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-        AWS_DEFAULT_REGION     = credentials('AWS_DEFAULT_REGION')
+        AWS_DEFAULT_REGION     = 'us-east-1'
         S3_BUCKET              = credentials('S3_BUCKET')
     }
 
@@ -25,8 +25,8 @@ pipeline {
                 script {
                     echo "🛠️ Building Docker Image (with cache)..."
                     sh """
+                        set -e
                         docker pull ${ImageRegistry}/${JOB_NAME}:latest || true
-
                         docker build \
                             --cache-from=${ImageRegistry}/${JOB_NAME}:latest \
                             -t ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER} \
@@ -43,6 +43,7 @@ pipeline {
                     echo "📦 Pushing Image to DockerHub..."
                     withCredentials([usernamePassword(credentialsId: 'docker-login', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                         sh """
+                            set -e
                             echo "$PASS" | docker login -u "$USER" --password-stdin
                             docker push ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER}
                             docker push ${ImageRegistry}/${JOB_NAME}:latest
@@ -57,10 +58,10 @@ pipeline {
                 script {
                     echo "🚀 Deploying on EC2 via Docker Compose..."
 
-                    // Write all environment variables into .env
+                    // Write environment variables into .env file (now expands correctly)
                     sh """
                     echo "🧾 Writing Jenkins credentials into ${DotEnvFile}..."
-                    cat > ${DotEnvFile} <<'EOF'
+                    cat > ${DotEnvFile} <<EOF
 AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
