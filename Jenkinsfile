@@ -58,7 +58,7 @@ pipeline {
                 script {
                     echo "🚀 Deploying on EC2 via Docker Compose..."
 
-                    // Write environment variables into .env file (now expands correctly)
+                    // ✅ Correct: Jenkins variables expand inside this .env file
                     sh """
                     echo "🧾 Writing Jenkins credentials into ${DotEnvFile}..."
                     cat > ${DotEnvFile} <<EOF
@@ -72,7 +72,7 @@ TELEGRAM_CHANNEL_URL=https://t.me/devtestingchannel
 EOF
                     """
 
-                    // Deploy remotely on EC2
+                    // ✅ Deploy remotely to EC2
                     sshagent(['ec2']) {
                         sh """
                         echo "📤 Uploading files to EC2..."
