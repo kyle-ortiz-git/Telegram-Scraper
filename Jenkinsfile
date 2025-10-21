@@ -23,8 +23,16 @@ pipeline {
         stage('Build Image') {
             steps {
                 script {
-                    echo "🛠️ Building Docker Image..."
-                    sh "docker build -t ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER} ."
+                    echo "🛠️ Building Docker Image (with cache)..."
+                    sh """
+                        docker pull ${ImageRegistry}/${JOB_NAME}:latest || true
+
+                        docker build \
+                            --cache-from=${ImageRegistry}/${JOB_NAME}:latest \
+                            -t ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER} \
+                            -t ${ImageRegistry}/${JOB_NAME}:latest \
+                            .
+                    """
                 }
             }
         }
@@ -34,10 +42,11 @@ pipeline {
                 script {
                     echo "📦 Pushing Image to DockerHub..."
                     withCredentials([usernamePassword(credentialsId: 'docker-login', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                        sh '''
+                        sh """
                             echo "$PASS" | docker login -u "$USER" --password-stdin
                             docker push ${ImageRegistry}/${JOB_NAME}:${BUILD_NUMBER}
-                        '''
+                            docker push ${ImageRegistry}/${JOB_NAME}:latest
+                        """
                     }
                 }
             }
@@ -71,6 +80,7 @@ EOF
                         echo "🔁 Restarting Docker Compose on EC2..."
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "
                             cd /home/ubuntu/mywebsite &&
+                            docker compose pull &&
                             docker compose --env-file .env down -v &&
                             docker compose --env-file .env up -d --build
                         "
