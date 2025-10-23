@@ -21,7 +21,6 @@ s3_bucket = os.getenv("S3_BUCKET", "telegram-qna-splits")
 
 client = TelegramClient('anon', api_id, api_hash)
 s3 = boto3.client('s3', region_name=aws_region)
-transcribe = boto3.client('transcribe', region_name=aws_region)
 
 STATE_FILE = "last_id.json"
 DOWNLOADS_DIR = "downloads"
@@ -31,11 +30,13 @@ SPLIT_DIR = "splits"
 # === STATE HANDLERS ===
 def get_last_id():
     if os.path.exists(STATE_FILE):
-        return json.load(open(STATE_FILE)).get("last_id", 0)
+        return json.load(open(STATE_FILE))["last_id"]
     return 0
+
 
 def save_last_id(last_id):
     json.dump({"last_id": last_id}, open(STATE_FILE, "w"))
+
 
 def clean_local_folders():
     for folder in [DOWNLOADS_DIR, SPLIT_DIR]:
@@ -51,17 +52,21 @@ class Timer:
     def __init__(self, time_between=1.5):
         self.start_time = time.time()
         self.time_between = time_between
+
     def can_send(self):
         if time.time() > (self.start_time + self.time_between):
             self.start_time = time.time()
             return True
         return False
 
+
 timer = Timer()
+
 
 async def progress_bar(current, total, fname):
     if timer.can_send():
-        print(f"{fname}: {current*100/total:.1f}%")
+        print(f"{fname}: {current * 100 / total:.1f}%")
+
 
 def is_qna_message(msg_text: str) -> bool:
     if not msg_text:
@@ -70,19 +75,33 @@ def is_qna_message(msg_text: str) -> bool:
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return "livestream counselling q&a timestamps" in cleaned.lower()
 
+
 def extract_date(text: str) -> str:
     text = re.sub(r"https?://t\.me/\S+", "", text)
     text = text.replace("\n", " ").strip()
-    m = re.search(r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?,\s*(\d{4})", text)
+    m = re.search(
+        r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?,\s*(\d{4})",
+        text,
+    )
     if not m:
         return None
     month, day, year = m.groups()
     months = {
-        "January": "01", "February": "02", "March": "03", "April": "04", "May": "05",
-        "June": "06", "July": "07", "August": "08", "September": "09",
-        "October": "10", "November": "11", "December": "12"
+        "January": "01",
+        "February": "02",
+        "March": "03",
+        "April": "04",
+        "May": "05",
+        "June": "06",
+        "July": "07",
+        "August": "08",
+        "September": "09",
+        "October": "10",
+        "November": "11",
+        "December": "12",
     }
     return f"{year}-{day.zfill(2)}-{months[month]}"
+
 
 def parse_timestamps(text: str):
     lines = text.splitlines()
@@ -93,12 +112,17 @@ def parse_timestamps(text: str):
         if m:
             time_str, question = m.groups()
             parts = [int(x) for x in time_str.split(":")]
-            secs = parts[0]*3600 + parts[1]*60 + (parts[2] if len(parts)==3 else 0)
+            if len(parts) == 2:
+                secs = parts[0] * 60 + parts[1]
+            else:
+                secs = parts[0] * 3600 + parts[1] * 60 + parts[2]
             items.append((secs, question.strip()))
     return items
 
+
 def sanitize_filename(name: str) -> str:
-    return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', name)[:180]
+    return re.sub(r'[<>:"/\\|?*\x00-\x1F]', "_", name)[:180]
+
 
 def upload_to_s3(file_path, s3_key):
     try:
@@ -107,33 +131,18 @@ def upload_to_s3(file_path, s3_key):
     except Exception as e:
         print(f"❌ Failed to upload {file_path}: {e}")
 
-def start_transcribe_job(s3_uri, job_name):
-    try:
-        transcribe.start_transcription_job(
-            TranscriptionJobName=job_name,
-            Media={'MediaFileUri': s3_uri},
-            MediaFormat='mp3',
-            OutputBucketName=s3_bucket,
-            OutputKey=f"transcripts/{job_name}.json",
-            IdentifyMultipleLanguages=True,
-            LanguageOptions=['en-US', 'ar-SA']
-        )
-        print(f"🎧 Started Transcribe job: {job_name}")
-    except Exception as e:
-        print(f"⚠️ Could not start transcription job for {s3_uri}: {e}")
-
 
 # === MAIN ===
 async def main():
+    channel = await client.get_entity(os.getenv("TELEGRAM_CHANNEL_URL", "https://t.me/devtestingchannel"))
     os.makedirs(DOWNLOADS_DIR, exist_ok=True)
     os.makedirs(SPLIT_DIR, exist_ok=True)
 
-    channel = await client.get_entity(os.getenv("TELEGRAM_CHANNEL_URL", "https://t.me/devtestingchannel"))
     last_id = get_last_id()
     print(f"📜 Last processed id: {last_id}")
 
     async for message in client.iter_messages(channel, min_id=last_id):
-        if message.audio and message.audio.mime_type == 'audio/mpeg' and is_qna_message(message.message):
+        if message.audio and message.audio.mime_type == "audio/mpeg" and is_qna_message(message.message):
             ts_items = parse_timestamps(message.message)
             if not ts_items:
                 print("⚠️ No timestamps found, skipping...")
@@ -149,32 +158,30 @@ async def main():
                     client,
                     message.document,
                     out,
-                    progress_callback=lambda c,t,fname=fname: progress_bar(c,t,fname)
+                    progress_callback=lambda c, t, fname=fname: progress_bar(c, t, fname),
                 )
             print(f"✅ Finished download: {path}")
 
+            # Split audio cleanly
             audio = AudioSegment.from_file(path)
             duration_ms = len(audio)
+            print(f"🎧 Audio length: {duration_ms / 1000:.1f} seconds")
 
             for idx, (start_sec, question) in enumerate(ts_items):
                 start_ms = start_sec * 1000
-                end_ms = ts_items[idx+1][0]*1000 if idx+1 < len(ts_items) else duration_ms
+                end_ms = ts_items[idx + 1][0] * 1000 if idx + 1 < len(ts_items) else duration_ms
                 clip = audio[start_ms:end_ms]
                 q_name = f"{date_str} - {sanitize_filename(question)}.mp3"
                 out_path = os.path.join(SPLIT_DIR, q_name)
                 clip.export(out_path, format="mp3")
                 print(f"🎧 Saved split: {out_path}")
 
-            # === UPLOAD SPLITS TO S3 ===
-            for file in os.listdir(SPLIT_DIR):
-                fpath = os.path.join(SPLIT_DIR, file)
-                s3_key = f"initial-splits/{file}"
-                upload_to_s3(fpath, s3_key)
-                s3_uri = f"s3://{s3_bucket}/{s3_key}"
-                job_name = re.sub(r'[^a-zA-Z0-9_-]', '_', file.split(".mp3")[0])
-                start_transcribe_job(s3_uri, job_name)
+                # Upload immediately
+                s3_key = f"initial-splits/{q_name}"
+                upload_to_s3(out_path, s3_key)
 
-            # === CLEANUP LOCAL ===
+            # Cleanup local files after each batch
+            time.sleep(1)
             clean_local_folders()
             print("🧹 Cleaned up local folders for next session.")
 
