@@ -2,3 +2,4 @@ telethon
 pydub
 python-dateutil
 boto3
+pymysql
