@@ -10,6 +10,12 @@ pipeline {
         // Telegram API
         TELEGRAM_API_ID   = credentials('TELEGRAM_API_ID')
         TELEGRAM_API_HASH = credentials('TELEGRAM_API_HASH')
+		
+		// DB
+        DB_HOST   = credentials('DB_HOST')
+        DB_USER   = credentials('DB_USER')
+		DB_PASS   = credentials('DB_PASS')
+		DB_NAME   = credentials('DB_NAME')
 
         // AWS credentials
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
