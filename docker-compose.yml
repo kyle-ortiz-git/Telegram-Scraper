@@ -9,10 +9,10 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_NAME: ${MYSQL_DATABASE}
-      DB_USER: ${MYSQL_USER}
-      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASS}
       S3_BUCKET: ${S3_BUCKET}                  # renamed to match .env and boto3
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION} # renamed from REGION
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}   # added explicitly for boto3
@@ -58,10 +58,10 @@ services:
     ports:
       - "8081:80"
     environment:
-      PMA_HOST: db
+      PMA_HOST: ${DB_USER}
       PMA_PORT: 3306
-      PMA_USER: ${MYSQL_USER}
-      PMA_PASSWORD: ${MYSQL_PASSWORD}
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASS}
 #    depends_on:
 #      db:
 #        condition: service_healthy
