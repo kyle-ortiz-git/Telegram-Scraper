@@ -5,7 +5,7 @@ FROM php:8.3-apache
 WORKDIR /var/www/html
 
 # ------------------------------------------------------------
-# 1️⃣ Install system dependencies & PHP extensions
+# 1️ Install system dependencies & PHP extensions
 # ------------------------------------------------------------
 RUN apt-get update && apt-get install -y \
     libpng-dev \
@@ -23,18 +23,18 @@ RUN apt-get update && apt-get install -y \
  && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
-# 2️⃣ Install Composer (cached globally)
+# 2️ Install Composer (cached globally)
 # ------------------------------------------------------------
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # ------------------------------------------------------------
-# 3️⃣ Copy dependency manifests *only* first (for cache)
+# 3️ Copy dependency manifests *only* first (for cache)
 # ------------------------------------------------------------
 COPY ./app/composer.json ./app/composer.lock* /var/www/html/
 COPY ./requirements.txt /opt/requirements.txt
 
 # ------------------------------------------------------------
-# 4️⃣ Install PHP & Python dependencies (cached)
+# 4️ Install PHP & Python dependencies (cached)
 # ------------------------------------------------------------
 WORKDIR /var/www/html
 RUN composer install --no-dev --optimize-autoloader --no-interaction || true
@@ -45,23 +45,28 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
 
 # ------------------------------------------------------------
-# 5️⃣ Copy application source code (invalidate cache only here)
+# 5️ Copy application source code (invalidate cache only here)
 # ------------------------------------------------------------
 COPY ./app /var/www/html
 COPY ./telegram_scraping /opt/telegram_scraping
 
 # ------------------------------------------------------------
-# 6️⃣ Permissions
+# 6️ Permissions
 # ------------------------------------------------------------
 RUN chown -R www-data:www-data /var/www/html && \
     chmod -R 755 /var/www/html
 
 # ------------------------------------------------------------
-# 7️⃣ Expose Apache port
+# 7️ Expose Apache port
 # ------------------------------------------------------------
 EXPOSE 80
 
 # ------------------------------------------------------------
-# 8️⃣ Start Apache + Python scraper
+# 8 Start Apache + Python scraper
 # ------------------------------------------------------------
 CMD ["bash", "-c", "python3 /opt/telegram_scraping/scraping.py & apache2-foreground"]
+
+
+
+#DOCKER ENV
+COPY .env /app/.env
