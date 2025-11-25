@@ -72,6 +72,12 @@ AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 S3_BUCKET=${S3_BUCKET}
+
+DB_HOST=${DB_HOST}
+DB_USER=${DB_USER}
+DB_PASS=${DB_PASS}
+DB_NAME=${DB_NAME}
+
 TELEGRAM_API_ID=${TELEGRAM_API_ID}
 TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
 TELEGRAM_CHANNEL_URL=https://t.me/devtestingchannel
@@ -79,7 +85,7 @@ EOF
                     """
 
                     // ✅ Deploy remotely to EC2
-                    sshagent(['ec2']) {
+                    sshagent(['docker-host-ssh']) {
                         sh """
                         echo "📤 Uploading files to EC2..."
                         scp -o StrictHostKeyChecking=no ${DotEnvFile} ${DockerComposeFile} ubuntu@${EC2_IP}:/home/ubuntu/mywebsite/
