@@ -42,7 +42,22 @@ pipeline {
                 }
             }
         }
-
+		
+		// DELETE THIS LATER
+		stage('Test SSH to Docker host') {
+			steps {
+				sshagent(credentials: ['docker-host-ssh']) {
+					sh '''
+					echo "Testing SSH to Docker host..."
+					ssh -o StrictHostKeyChecking=no ubuntu@52.4.172.57 "hostname && whoami"
+					'''
+				}
+			}
+		}
+		// DELETE THIS LATER		
+		
+		
+		
         stage('Push Image') {
             steps {
                 script {
