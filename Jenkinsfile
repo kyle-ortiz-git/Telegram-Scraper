@@ -11,17 +11,17 @@ pipeline {
         TELEGRAM_API_ID   = credentials('TELEGRAM_API_ID')
         TELEGRAM_API_HASH = credentials('TELEGRAM_API_HASH')
 		
-		// DB
-        DB_HOST   = credentials('DB_HOST')
-        DB_USER   = credentials('DB_USER')
-		DB_PASS   = credentials('DB_PASS')
-		DB_NAME   = credentials('DB_NAME')
+        // DB
+        DB_HOST = credentials('DB_HOST')
+        DB_USER = credentials('DB_USER')
+        DB_PASS = credentials('DB_PASS')
+        DB_NAME = credentials('DB_NAME')
 
         // AWS credentials
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-        AWS_DEFAULT_REGION     = 'us-east-1'
-        S3_BUCKET              = credentials('S3_BUCKET')
+        AWS_DEFAULT_REGION    = 'us-east-1'
+        S3_BUCKET             = credentials('S3_BUCKET')
     }
 
     stages {
@@ -42,22 +42,7 @@ pipeline {
                 }
             }
         }
-		
-		// DELETE THIS LATER
-		stage('Test SSH to Docker host') {
-			steps {
-				sshagent(credentials: ['docker-host-ssh']) {
-					sh '''
-					echo "Testing SSH to Docker host..."
-					ssh -o StrictHostKeyChecking=no ubuntu@52.4.172.57 "hostname && whoami"
-					'''
-				}
-			}
-		}
-		// DELETE THIS LATER		
-		
-		
-		
+
         stage('Push Image') {
             steps {
                 script {
@@ -79,10 +64,11 @@ pipeline {
                 script {
                     echo "🚀 Deploying on EC2 via Docker Compose..."
 
-                    // ✅ Correct: Jenkins variables expand inside this .env file
+                    // 1) Generate .env on the JENKINS box (with real values)
                     sh """
-                    echo "🧾 Writing Jenkins credentials into ${DotEnvFile}..."
-                    cat > ${DotEnvFile} <<EOF
+                        set -e
+                        echo "🧾 Writing Jenkins credentials into ${DotEnvFile}..."
+                        cat > ${DotEnvFile} <<EOF
 AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
@@ -97,24 +83,33 @@ TELEGRAM_API_ID=${TELEGRAM_API_ID}
 TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
 TELEGRAM_CHANNEL_URL=https://t.me/devtestingchannel
 EOF
-                    """
 
-                    // ✅ Deploy remotely to EC2
+                        echo "----- LOCAL .env ON JENKINS -----"
+                        cat ${DotEnvFile}
+                        echo "---------------------------------"
+                    """.stripIndent()
+
+                    // 2) Upload .env + compose to DOCKER EC2 and restart compose
                     sshagent(['docker-host-ssh']) {
                         sh """
-                        echo "📤 Uploading files to EC2..."
-                        scp -o StrictHostKeyChecking=no ${DotEnvFile} ${DockerComposeFile} ubuntu@${EC2_IP}:/home/ubuntu/mywebsite/
+                            set -e
+                            echo "📤 Uploading .env and docker-compose.yml to EC2..."
+                            scp -o StrictHostKeyChecking=no ${DotEnvFile} ${DockerComposeFile} ubuntu@${EC2_IP}:/home/ubuntu/mywebsite/
 
-                        echo "🔁 Restarting Docker Compose on EC2..."
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "
-                            cd /home/ubuntu/mywebsite &&
-                            docker compose pull &&
-                            docker compose --env-file .env down -v &&
-                            docker compose --env-file .env up -d --build
-                        "
-                        """
+                            echo "----- REMOTE .env ON DOCKER EC2 -----"
+                            ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "cd /home/ubuntu/mywebsite && cat .env"
+                            echo "--------------------------------------"
+
+                            echo "🔁 Restarting Docker Compose on EC2..."
+                            ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} "
+                                cd /home/ubuntu/mywebsite &&
+                                docker compose --env-file .env down -v &&
+                                docker compose --env-file .env up -d --build
+                            "
+                        """.stripIndent()
                     }
 
+                    // 3) Clean up local .env on Jenkins
                     echo "🧹 Cleaning up local .env file..."
                     sh "rm -f ${DotEnvFile}"
                 }
