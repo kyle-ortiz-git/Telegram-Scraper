@@ -1,140 +1,269 @@
-// Handle search form submit
-document.getElementById('searchForm').addEventListener('submit', function (event) {
-    event.preventDefault();
+<?php
+require 'vendor/autoload.php';
 
-    const queryInput = document.getElementById('query');
-    const statusEl = document.getElementById('statusMessage');
-    const resultsEl = document.getElementById('results');
-    const noResultsEl = document.getElementById('noResults');
+use Aws\S3\S3Client;
+use Dotenv\Dotenv;
 
-    const query = queryInput.value.trim();
-    if (!query) {
+// Load environment variables from .env file
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+// Database credentials
+$db_host = $_ENV['DB_HOST'];
+$db_user = $_ENV['DB_USER'];
+$db_pass = $_ENV['DB_PASSWORD'];
+$db_name = $_ENV['DB_NAME'];
+
+// S3 / bucket config
+$aws_region = $_ENV['AWS_DEFAULT_REGION'] ?? 'us-east-1';
+$bucket     = $_ENV['S3_BUCKET'] ?? 'telegram-qna-splits';
+$s3_prefix  = 'initial-splits/'; // prefix inside the bucket
+
+// Connect to DB
+$conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+if ($conn->connect_error) {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'status'  => 'error',
+        'message' => 'Database connection failed.'
+    ]);
+    exit;
+}
+
+header('Content-Type: application/json; charset=utf-8');
+
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+if ($action === 'search') {
+    handle_search($conn);
+} elseif ($action === 'get_audio') {
+    handle_get_audio($conn, $bucket, $aws_region, $s3_prefix);
+} else {
+    echo json_encode([
+        'status'  => 'error',
+        'message' => 'Invalid action.'
+    ]);
+}
+
+$conn->close();
+
+/**
+ * Handle search requests.
+ * Parameters:
+ *   - query (string)
+ *   - mode  (title|both)
+ *
+ * Uses table: Question (ID, Title, Date, Transcription)
+ */
+function handle_search(mysqli $conn): void
+{
+    $query = trim($_POST['query'] ?? '');
+    $mode  = $_POST['mode'] ?? 'title';
+
+    if ($query === '') {
+        echo json_encode([
+            'status'  => 'ok',
+            'results' => []
+        ]);
         return;
     }
 
-    const mode = document.querySelector('input[name="mode"]:checked').value;
+    $like = '%' . $query . '%';
 
-    // Clear UI
-    statusEl.style.display = 'block';
-    statusEl.textContent = 'Searching...';
-    resultsEl.innerHTML = '';
-    noResultsEl.style.display = 'none';
+    if ($mode === 'both') {
+        $sql = "SELECT ID, Title, Date, Transcription
+                FROM Question
+                WHERE Title LIKE ? OR Transcription LIKE ?
+                ORDER BY Date DESC
+                LIMIT 100";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('ss', $like, $like);
+    } else {
+        $sql = "SELECT ID, Title, Date, Transcription
+                FROM Question
+                WHERE Title LIKE ?
+                ORDER BY Date DESC
+                LIMIT 100";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('s', $like);
+    }
 
-    const formData = new FormData();
-    formData.append('action', 'search');
-    formData.append('query', query);
-    formData.append('mode', mode);
+    if (!$stmt->execute()) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Query failed.'
+        ]);
+        return;
+    }
 
-    fetch('process.php', {
-        method: 'POST',
-        body: formData
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status !== 'ok') {
-                statusEl.textContent = data.message || 'An error occurred.';
-                return;
-            }
+    $result  = $stmt->get_result();
+    $results = [];
 
-            statusEl.style.display = 'none';
-            const results = data.results || [];
+    while ($row = $result->fetch_assoc()) {
+        $transcription = $row['Transcription'] ?? '';
+        $snippet       = mb_substr($transcription, 0, 180);
+        if (mb_strlen($transcription) > 180) {
+            $snippet .= '…';
+        }
 
-            if (!results.length) {
-                noResultsEl.style.display = 'block';
-                return;
-            }
+        $results[] = [
+            'id'      => (int)$row['ID'],
+            'title'   => $row['Title'],
+            'date'    => $row['Date'],
+            'snippet' => $snippet
+        ];
+    }
 
-            resultsEl.innerHTML = '';
+    $stmt->close();
 
-            results.forEach(item => {
-                const a = document.createElement('a');
-                a.href = '#';
-                a.className = 'list-group-item list-group-item-action';
-                a.dataset.id = item.id;
-                a.dataset.title = item.title;
+    echo json_encode([
+        'status'  => 'ok',
+        'results' => $results
+    ]);
+}
 
-                const headerDiv = document.createElement('div');
-                headerDiv.className = 'd-flex w-100 justify-content-between';
+/**
+ * Handle get_audio requests.
+ * Parameters:
+ *   - id (int)
+ *
+ * Uses DB Date + Title and S3 listObjects to find the best-matching MP3
+ * for that question. Returns a pre-signed URL because the bucket is private.
+ */
+function handle_get_audio(mysqli $conn, string $bucket, string $aws_region, string $s3_prefix): void
+{
+    $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+    if ($id <= 0) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Invalid ID.'
+        ]);
+        return;
+    }
 
-                const h5 = document.createElement('h5');
-                h5.className = 'mb-1';
-                h5.textContent = item.title;
+    $sql  = "SELECT ID, Title, Date FROM Question WHERE ID = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i', $id);
 
-                const small = document.createElement('small');
-                small.textContent = item.date || '';
+    if (!$stmt->execute()) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Query failed.'
+        ]);
+        return;
+    }
 
-                headerDiv.appendChild(h5);
-                headerDiv.appendChild(small);
+    $result = $stmt->get_result();
+    $row    = $result->fetch_assoc();
+    $stmt->close();
 
-                const p = document.createElement('p');
-                p.className = 'mb-1';
-                p.textContent = item.snippet || '';
+    if (!$row) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Question not found.'
+        ]);
+        return;
+    }
 
-                a.appendChild(headerDiv);
-                a.appendChild(p);
+    $title = $row['Title'];
+    $date  = $row['Date'];
 
-                resultsEl.appendChild(a);
-            });
-        })
-        .catch(err => {
-            console.error(err);
-            statusEl.style.display = 'block';
-            statusEl.textContent = 'An error occurred while searching.';
-        });
-});
+    // Build S3 client (credentials are taken from environment / IAM role)
+    $s3 = new S3Client([
+        'version' => 'latest',
+        'region'  => $aws_region
+    ]);
 
-// Delegate click events on results list to open a question
-document.getElementById('results').addEventListener('click', function (event) {
-    const target = event.target.closest('.list-group-item');
-    if (!target) return;
-    event.preventDefault();
+    // Keys look like:
+    //   initial-splits/2022-29-11 - Ruling of death benefits.mp3
+    $prefix = $s3_prefix . $date . ' - ';
 
-    const id = target.dataset.id;
-    if (!id) return;
+    try {
+        $objects = $s3->listObjectsV2([
+            'Bucket' => $bucket,
+            'Prefix' => $prefix
+        ]);
+    } catch (Exception $e) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Could not list audio files for this date.'
+        ]);
+        return;
+    }
 
-    openQuestionDialog(id);
-});
+    if (empty($objects['Contents'])) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'No audio files found for this question.'
+        ]);
+        return;
+    }
 
-function openQuestionDialog(id) {
-    const formData = new FormData();
-    formData.append('action', 'get_audio');
-    formData.append('id', id);
+    $dbNormTitle = normalize_title($title);
+    $bestKey     = null;
+    $bestScore   = PHP_INT_MAX;
 
-    const statusEl = document.getElementById('statusMessage');
-    statusEl.style.display = 'block';
-    statusEl.textContent = 'Loading audio...';
+    foreach ($objects['Contents'] as $object) {
+        $key = $object['Key'];
 
-    fetch('process.php', {
-        method: 'POST',
-        body: formData
-    })
-        .then(response => response.json())
-        .then(data => {
-            statusEl.style.display = 'none';
+        // Get the part after "YYYY-XX-YY - " and before ".mp3"
+        $basename   = basename($key, '.mp3');
+        $titlePart  = preg_replace('/^\d{4}-\d{2}-\d{2}\s*-\s*/', '', $basename);
+        $normTitle  = normalize_title($titlePart);
+        $distance   = levenshtein($dbNormTitle, $normTitle);
 
-            if (data.status !== 'ok') {
-                statusEl.style.display = 'block';
-                statusEl.textContent = data.message || 'Unable to load audio.';
-                return;
-            }
+        if ($distance < $bestScore) {
+            $bestScore = $distance;
+            $bestKey   = $key;
+        }
+    }
 
-            const title = data.title || '';
-            const audioUrl = data.audio_url;
+    if ($bestKey === null) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Could not match question to an audio file.'
+        ]);
+        return;
+    }
 
-            const modalTitleEl = document.getElementById('qaModalTitle');
-            const audioSourceEl = document.getElementById('qaAudioSource');
-            const audioEl = document.getElementById('qaAudio');
+    // Create a pre-signed URL (since bucket is private)
+    try {
+        $cmd = $s3->getCommand('GetObject', [
+            'Bucket' => $bucket,
+            'Key'    => $bestKey,
+        ]);
 
-            modalTitleEl.textContent = title;
-            audioSourceEl.src = audioUrl;
-            audioEl.load();
+        // Link valid for 20 minutes (adjust as needed)
+        $request  = $s3->createPresignedRequest($cmd, '+20 minutes');
+        $audioUrl = (string)$request->getUri();
+    } catch (Exception $e) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Could not generate audio URL.'
+        ]);
+        return;
+    }
 
-            // Show Bootstrap modal
-            $('#qaModal').modal('show');
-        })
-        .catch(err => {
-            console.error(err);
-            statusEl.style.display = 'block';
-            statusEl.textContent = 'An error occurred while loading the audio.';
-        });
+    echo json_encode([
+        'status'    => 'ok',
+        'title'     => $title,
+        'audio_url' => $audioUrl
+    ]);
+}
+
+/**
+ * Normalize a title for fuzzy comparison:
+ * - lowercase
+ * - remove punctuation
+ * - collapse whitespace
+ */
+function normalize_title(string $title): string
+{
+    $title = mb_strtolower($title, 'UTF-8');
+    // Keep letters, numbers, and spaces only
+    $title = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $title);
+    // Collapse whitespace
+    $title = preg_replace('/\s+/u', ' ', $title);
+    return trim($title);
 }

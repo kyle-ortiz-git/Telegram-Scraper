@@ -21,7 +21,7 @@
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-            max-width: 900px;
+            max-width: 1100px;
             margin: 40px auto;
         }
         .qna-widget h2 {
@@ -30,8 +30,18 @@
             font-weight: bold;
         }
         .results-container {
-            max-height: 400px;
+            max-height: 450px;
             overflow-y: auto;
+        }
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background: #f1f1f1;
+            z-index: 1;
+        }
+        .audio-cell {
+            white-space: nowrap;
+            text-align: right;
         }
     </style>
 </head>
@@ -44,18 +54,18 @@
         <!-- Search form -->
         <form id="searchForm" class="mb-3">
             <div class="form-row align-items-center">
-                <div class="col-sm-12 col-md-6 mb-2">
+                <div class="col-sm-12 col-md-7 mb-2">
                     <input
                         type="text"
                         class="form-control"
                         id="query"
                         name="query"
-                        placeholder="Type your question keywords..."
+                        placeholder="Search your question here..."
                         required
                     >
                 </div>
 
-                <div class="col-sm-12 col-md-4 mb-2">
+                <div class="col-sm-12 col-md-3 mb-2">
                     <div class="form-check form-check-inline">
                         <input
                             class="form-check-input"
@@ -96,7 +106,19 @@
 
         <!-- Results -->
         <div class="results-container">
-            <div id="results" class="list-group"></div>
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th style="width:60px;">ID</th>
+                        <th>Question (Title)</th>
+                        <th style="width:35%;">Transcript snippet</th>
+                        <th style="width:140px;" class="text-right">Audio</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <!-- Filled dynamically -->
+                </tbody>
+            </table>
         </div>
 
         <div id="noResults" class="text-muted mt-3" style="display:none;">
