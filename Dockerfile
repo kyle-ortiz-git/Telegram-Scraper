@@ -1,11 +1,11 @@
 # Use the official PHP 8.3 image with Apache
 FROM php:8.3-apache
 
-# Set working directory
+# Set working directory for the PHP app
 WORKDIR /var/www/html
 
 # ------------------------------------------------------------
-# 1️ Install system dependencies & PHP extensions
+# 1. Install system dependencies & PHP extensions
 # ------------------------------------------------------------
 RUN apt-get update && apt-get install -y \
     libpng-dev \
@@ -23,62 +23,56 @@ RUN apt-get update && apt-get install -y \
  && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
-# 2️ Install Composer
+# 2. Install Composer
 # ------------------------------------------------------------
 RUN curl -sS https://getcomposer.org/installer | php -- \
     --install-dir=/usr/local/bin --filename=composer
 
 # ------------------------------------------------------------
-# 3️ Copy ONLY composer manifests FIRST
-# This ensures composer install can run BEFORE app code is copied
+# 3. Copy ONLY Composer manifests from ./app and install PHP deps
+#    (this creates vendor/ in /var/www/html)
 # ------------------------------------------------------------
 COPY ./app/composer.json /var/www/html/composer.json
+# composer.lock is optional; copy it if present
 COPY ./app/composer.lock /var/www/html/composer.lock
 
-# ------------------------------------------------------------
-# 4️ Install PHP dependencies BEFORE copying the full app
-# (better build caching, vendor will not be overwritten)
-# ------------------------------------------------------------
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # ------------------------------------------------------------
-# 5️ Now copy application source code
-# (vendor already exists, app code will NOT overwrite it)
+# 4. Copy application source code from ./app into /var/www/html
+#    (this will NOT overwrite vendor/, we are not copying vendor/)
 # ------------------------------------------------------------
-COPY ./app /var/www/html
-
-# Copy Python scraper
-COPY ./telegram_scraping /opt/telegram_scraping
-
-# Python requirements
-COPY ./requirements.txt /opt/requirements.txt
+COPY ./app/ /var/www/html/
 
 # ------------------------------------------------------------
-# 6️ Install Python dependencies
+# 5. Copy Python scraper and requirements
 # ------------------------------------------------------------
 WORKDIR /opt
+COPY ./telegram_scraping /opt/telegram_scraping
+COPY ./requirements.txt /opt/requirements.txt
+
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install --no-cache-dir --break-system-packages audioop-lts && \
     pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
 
 # ------------------------------------------------------------
-# 7️ Permissions
+# 6. Permissions
 # ------------------------------------------------------------
 WORKDIR /var/www/html
 RUN chown -R www-data:www-data /var/www/html && \
     chmod -R 755 /var/www/html
 
 # ------------------------------------------------------------
-# 8️ Copy environment file
+# 7. Copy env file
 # ------------------------------------------------------------
 COPY .env /var/www/html/.env
 
 # ------------------------------------------------------------
-# 9️ Expose Apache port
+# 8. Expose Apache port
 # ------------------------------------------------------------
 EXPOSE 80
 
 # ------------------------------------------------------------
-# 10 Start Apache + Python scraper
+# 9. Start Apache + Python scraper
 # ------------------------------------------------------------
 CMD ["bash", "-c", "python3 /opt/telegram_scraping/scraping.py & apache2-foreground"]
