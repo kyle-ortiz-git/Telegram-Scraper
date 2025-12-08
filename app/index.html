@@ -18,12 +18,21 @@
         }
 
         .qna-widget {
+<<<<<<< HEAD
             background: #ffffff;
             padding: 40px 35px;
             border-radius: 14px;
             box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
             max-width: 1100px;
             margin: 50px auto;
+=======
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            margin: 40px auto;
+>>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
         }
 
         .qna-widget h2 {
@@ -33,6 +42,7 @@
             font-size: 38px;
             color: #157f7f;
         }
+<<<<<<< HEAD
 
         .search-input {
             border: 2px solid #157f7f;
@@ -58,6 +68,12 @@
             background-color: #e9ecef;
             font-weight: 600;
         }
+=======
+        .results-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+>>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
     </style>
 </head>
 <body>
@@ -67,19 +83,56 @@
         <h2>Live Q&A Search</h2>
 
         <!-- Search form -->
+<<<<<<< HEAD
         <form id="searchForm" class="mb-4">
             <div class="form-row">
                 <div class="col-sm-12 col-md-10 mb-2">
+=======
+        <form id="searchForm" class="mb-3">
+            <div class="form-row align-items-center">
+                <div class="col-sm-12 col-md-6 mb-2">
+>>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
                     <input
                         type="text"
                         class="form-control search-input"
                         id="query"
                         name="query"
-                        placeholder="Search your question here..."
+                        placeholder="Type your question keywords..."
                         required
                     >
                 </div>
 
+<<<<<<< HEAD
+=======
+                <div class="col-sm-12 col-md-4 mb-2">
+                    <div class="form-check form-check-inline">
+                        <input
+                            class="form-check-input"
+                            type="radio"
+                            name="mode"
+                            id="modeTitle"
+                            value="title"
+                            checked
+                        >
+                        <label class="form-check-label" for="modeTitle">
+                            Title only
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input
+                            class="form-check-input"
+                            type="radio"
+                            name="mode"
+                            id="modeBoth"
+                            value="both"
+                        >
+                        <label class="form-check-label" for="modeBoth">
+                            Title &amp; Transcript
+                        </label>
+                    </div>
+                </div>
+
+>>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
                 <div class="col-sm-12 col-md-2 mb-2">
                     <button type="submit" class="btn btn-block search-btn">
                         Search
@@ -93,6 +146,7 @@
 
         <!-- Results -->
         <div class="results-container">
+<<<<<<< HEAD
             <table class="table table-sm table-hover">
                 <thead>
                 <tr>
@@ -104,6 +158,9 @@
                 </thead>
                 <tbody id="resultsBody"></tbody>
             </table>
+=======
+            <div id="results" class="list-group"></div>
+>>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
         </div>
 
         <div id="noResults" class="text-muted mt-3" style="display:none;">
