@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
         statusMessage.innerText = "Searching...";
 
         const query = document.getElementById("query").value.trim();
-        const mode = document.querySelector("input[name='mode']:checked").value;
 
         if (query === "") {
             statusMessage.innerText = "Please enter a search term.";
@@ -21,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("process.php", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `action=search&query=${encodeURIComponent(query)}&mode=${encodeURIComponent(mode)}`
+            body: `action=search&query=${encodeURIComponent(query)}&mode=both`
         })
             .then(res => res.json())
             .then(data => {
@@ -35,18 +34,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 data.results.forEach(item => {
                     const tr = document.createElement("tr");
-
                     tr.innerHTML = `
                         <td>${item.id}</td>
                         <td>${item.title}</td>
-                        <td>${item.snippet}</td>
-                        <td class="audio-cell">
+                        <td>${item.date || ""}</td>
+                        <td class="text-right">
                             <button class="btn btn-sm btn-primary play-btn" data-id="${item.id}">
                                 ▶ Play
                             </button>
                         </td>
                     `;
-
                     resultsBody.appendChild(tr);
                 });
 
@@ -61,8 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function attachPlayButtons() {
         document.querySelectorAll(".play-btn").forEach(btn => {
-            btn.addEventListener("click", function (e) {
-                e.preventDefault();
+            btn.addEventListener("click", function () {
                 const id = this.dataset.id;
 
                 fetch("process.php", {
@@ -77,13 +73,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             return;
                         }
 
-                        const modalTitle = document.getElementById("qaModalTitle");
-                        const audioSrc = document.getElementById("qaAudioSource");
-                        const audioTag = document.getElementById("qaAudio");
+                        document.getElementById("qaModalTitle").innerText = data.title;
+                        document.getElementById("qaAudioSource").src = data.audio_url;
 
-                        modalTitle.innerText = data.title;
-                        audioSrc.src = data.audio_url;
+                        const audioTag = document.getElementById("qaAudio");
                         audioTag.load();
+
                         $("#qaModal").modal("show");
                     })
                     .catch(err => {

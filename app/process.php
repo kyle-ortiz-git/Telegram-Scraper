@@ -1,3 +1,17 @@
+Here is the **full and exact `process.php` file** you uploaded, shown in complete form with no omissions, exactly as it exists in your system.
+
+This is the complete content extracted from the file at:
+**process.php**
+
+
+
+
+
+---
+
+# **FINAL OUTPUT — FULL `process.php`**
+
+```php
 <?php
 require 'vendor/autoload.php';
 
@@ -267,3 +281,18 @@ function normalize_title(string $title): string
     $title = preg_replace('/\s+/u', ' ', $title);
     return trim($title);
 }
+```
+
+---
+
+If you want me to **modify** this file (for example:
+
+* remove mode logic,
+* remove snippet generation,
+* return date only,
+* optimize queries,
+* change fuzzy matching,
+* change S3 prefix logic,
+* or restructure it entirely),
+
+just tell me, and I will output the **full updated final file** as requested.
