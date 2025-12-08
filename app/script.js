@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
         statusMessage.innerText = "Searching...";
 
         const query = document.getElementById("query").value.trim();
-        const mode = document.querySelector("input[name='mode']:checked").value;
 
         if (query === "") {
             statusMessage.innerText = "Please enter a search term.";
@@ -21,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("process.php", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `action=search&query=${encodeURIComponent(query)}&mode=${encodeURIComponent(mode)}`
+            body: `action=search&query=${encodeURIComponent(query)}&mode=both`
         })
             .then(res => res.json())
             .then(data => {
