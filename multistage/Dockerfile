@@ -1,41 +1,44 @@
-# Build stage: Install Composer dependencies
+# ============================
+# 1) Build stage for Composer
+# ============================
 FROM php:8.3-cli AS builder
 
-# Install necessary packages
 RUN apt-get update && apt-get install -y git unzip
 
-# Set working directory
 WORKDIR /app
 
-# Copy composer.json and composer.lock if it exists
-COPY composer.json ./
+# Copy only composer files
+COPY app/composer.json app/composer.lock* ./
 
-# Install Composer
+# Install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install dependencies with no interaction
-RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader --no-suggest
+# Install PHP dependencies
+RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
 
-# Production stage: Only copy what is needed for running the application
+
+# ============================
+# 2) Production stage
+# ============================
 FROM php:8.3-apache
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy the installed dependencies from the builder stage
-COPY --from=builder /app/vendor /var/www/html/vendor
-
-# Copy the rest of the application files
-COPY . .
-
-# Install necessary PHP extensions
+# Enable PHP extensions
 RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-# Set the correct permissions
+# Copy vendor from builder
+COPY --from=builder /app/vendor /var/www/html/vendor
+
+# Copy the PHP application (NOT the whole repo!)
+COPY app/ /var/www/html/
+
+# Copy React build output (dist/) into Web root
+COPY app/dist /var/www/html/
+
+# Fix permissions
 RUN chown -R www-data:www-data /var/www/html
 
-# Expose port 80
 EXPOSE 80
 
-# Start Apache in the foreground
 CMD ["apache2-foreground"]
