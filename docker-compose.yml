@@ -24,7 +24,7 @@ services:
 #      - db
     restart: always
     volumes:
-      - ./app:/var/www/html
+#      - ./app:/var/www/html removing to fix
       - ./telegram_scraping:/opt/telegram_scraping
     networks:
       - app-network
