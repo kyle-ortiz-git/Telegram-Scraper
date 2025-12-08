@@ -5,75 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Q&A Search</title>
 
-    <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
-
     <!-- Bootstrap CSS -->
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
 
     <style>
         body {
-            font-family: 'Cormorant Garamond', serif;
-            background-color: #f3f5f6;
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
         }
-
         .qna-widget {
-<<<<<<< HEAD
-            background: #ffffff;
-            padding: 40px 35px;
-            border-radius: 14px;
-            box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
-            max-width: 1100px;
-            margin: 50px auto;
-=======
             background: #fff;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-            max-width: 900px;
+            max-width: 1100px;
             margin: 40px auto;
->>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
         }
-
         .qna-widget h2 {
             text-align: center;
-            margin-bottom: 30px;
-            font-weight: 700;
-            font-size: 38px;
-            color: #157f7f;
+            margin-bottom: 25px;
+            font-weight: bold;
         }
-<<<<<<< HEAD
-
-        .search-input {
-            border: 2px solid #157f7f;
-            border-right: none;
-            height: 46px;
-            border-radius: 6px 0 0 6px;
-        }
-
-        .search-btn {
-            background-color: #157f7f;
-            border-color: #157f7f;
-            height: 46px;
-            border-radius: 0 6px 6px 0;
-            font-weight: 600;
-        }
-
-        .search-btn:hover {
-            background-color: #0d5b5b;
-            border-color: #0d5b5b;
-        }
-
-        .table thead th {
-            background-color: #e9ecef;
-            font-weight: 600;
-        }
-=======
         .results-container {
-            max-height: 400px;
+            max-height: 450px;
             overflow-y: auto;
         }
->>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background: #f1f1f1;
+            z-index: 1;
+        }
+        .audio-cell {
+            white-space: nowrap;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -83,28 +52,20 @@
         <h2>Live Q&A Search</h2>
 
         <!-- Search form -->
-<<<<<<< HEAD
-        <form id="searchForm" class="mb-4">
-            <div class="form-row">
-                <div class="col-sm-12 col-md-10 mb-2">
-=======
         <form id="searchForm" class="mb-3">
             <div class="form-row align-items-center">
-                <div class="col-sm-12 col-md-6 mb-2">
->>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
+                <div class="col-sm-12 col-md-7 mb-2">
                     <input
                         type="text"
-                        class="form-control search-input"
+                        class="form-control"
                         id="query"
                         name="query"
-                        placeholder="Type your question keywords..."
+                        placeholder="Search your question here..."
                         required
                     >
                 </div>
 
-<<<<<<< HEAD
-=======
-                <div class="col-sm-12 col-md-4 mb-2">
+                <div class="col-sm-12 col-md-3 mb-2">
                     <div class="form-check form-check-inline">
                         <input
                             class="form-check-input"
@@ -127,40 +88,37 @@
                             value="both"
                         >
                         <label class="form-check-label" for="modeBoth">
-                            Title &amp; Transcript
+                            Title & Transcript
                         </label>
                     </div>
                 </div>
 
->>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
                 <div class="col-sm-12 col-md-2 mb-2">
-                    <button type="submit" class="btn btn-block search-btn">
+                    <button type="submit" class="btn btn-primary btn-block">
                         Search
                     </button>
                 </div>
             </div>
         </form>
 
-        <!-- Status text -->
+        <!-- Status / error text -->
         <div id="statusMessage" class="text-muted mb-2" style="display:none;"></div>
 
         <!-- Results -->
         <div class="results-container">
-<<<<<<< HEAD
             <table class="table table-sm table-hover">
                 <thead>
-                <tr>
-                    <th style="width:60px;">ID</th>
-                    <th>Question (Title)</th>
-                    <th style="width:20%;">Date</th>
-                    <th style="width:120px;" class="text-right">Audio</th>
-                </tr>
+                    <tr>
+                        <th style="width:60px;">ID</th>
+                        <th>Question (Title)</th>
+                        <th style="width:35%;">Transcript snippet</th>
+                        <th style="width:140px;" class="text-right">Audio</th>
+                    </tr>
                 </thead>
-                <tbody id="resultsBody"></tbody>
+                <tbody id="resultsBody">
+                    <!-- Filled dynamically -->
+                </tbody>
             </table>
-=======
-            <div id="results" class="list-group"></div>
->>>>>>> parent of f3995ca (Uploading the index.html, process.php, script.js for the website displaying all the results & search)
         </div>
 
         <div id="noResults" class="text-muted mt-3" style="display:none;">
@@ -169,29 +127,44 @@
     </div>
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="qaModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg">
+<!-- Modal for playing audio -->
+<div
+    class="modal fade"
+    id="qaModal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="qaModalTitle"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 id="qaModalTitle" class="modal-title"></h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
+                <h5 class="modal-title" id="qaModalTitle"></h5>
+                <button
+                    type="button"
+                    class="close"
+                    data-dismiss="modal"
+                    aria-label="Close"
+                >
+                    <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <audio id="qaAudio" controls style="width:100%;">
                     <source id="qaAudioSource" src="" type="audio/mpeg">
+                    Your browser does not support the audio element.
                 </audio>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Bootstrap JS and dependencies -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
+<!-- App script -->
 <script src="script.js"></script>
 
 </body>
