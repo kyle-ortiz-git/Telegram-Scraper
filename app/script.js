@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     tr.innerHTML = `
                         <td>${item.id}</td>
                         <td>${item.title}</td>
-                        <td>${item.snippet}</td>
+                        <td>${item.date}</td>
                         <td class="audio-cell">
                             <button class="btn btn-sm btn-primary play-btn" data-id="${item.id}">
                                 ▶ Play
