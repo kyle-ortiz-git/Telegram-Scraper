@@ -30,11 +30,19 @@ RUN docker-php-ext-install mysqli pdo pdo_mysql
 # Copy vendor from builder
 COPY --from=builder /app/vendor /var/www/html/vendor
 
-# Copy the PHP application (NOT the whole repo!)
-COPY app/ /var/www/html/
+# Copy backend PHP files ONLY (EXCLUDE old index.html)
+COPY app/process.php /var/www/html/
+COPY app/script.js /var/www/html/
+COPY app/.env /var/www/html/
 
-# Copy React build output (dist/) into Web root
-COPY app/dist /var/www/html/
+# OPTIONAL: if you expect more PHP files, copy them here explicitly
+# COPY app/otherfile.php /var/www/html/
+
+# Remove ANY existing index.html (from old PHP frontend)
+RUN rm -f /var/www/html/index.html
+
+# Now copy the React build (this MUST be last)
+COPY app/dist/ /var/www/html/
 
 # Fix permissions
 RUN chown -R www-data:www-data /var/www/html
