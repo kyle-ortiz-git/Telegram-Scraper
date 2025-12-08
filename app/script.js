@@ -20,41 +20,42 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("process.php", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `action=search&query=${encodeURIComponent(query)}&mode=both`
+            body: `action=search&query=${encodeURIComponent(query)}`
         })
-            .then(res => res.json())
-            .then(data => {
-                statusMessage.style.display = "none";
-                resultsBody.innerHTML = "";
+        .then(res => res.json())
+        .then(data => {
+            statusMessage.style.display = "none";
+            resultsBody.innerHTML = "";
 
-                if (data.status !== "ok" || !Array.isArray(data.results) || data.results.length === 0) {
-                    noResults.style.display = "block";
-                    return;
-                }
+            if (data.status !== "ok" || !Array.isArray(data.results) || data.results.length === 0) {
+                noResults.style.display = "block";
+                return;
+            }
 
-                data.results.forEach(item => {
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td>${item.id}</td>
-                        <td>${item.title}</td>
-                        <td>${item.date || ""}</td>
-                        <td class="text-right">
-                            <button class="btn btn-sm btn-primary play-btn" data-id="${item.id}">
-                                ▶ Play
-                            </button>
-                        </td>
-                    `;
-                    resultsBody.appendChild(tr);
-                });
-
-                attachPlayButtons();
-            })
-            .catch(err => {
-                console.error(err);
-                statusMessage.style.display = "block";
-                statusMessage.innerText = "Error connecting to server.";
+            data.results.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.title}</td>
+                    <td>${item.date}</td>
+                    <td class="text-right">
+                        <button class="btn btn-sm btn-primary play-btn" data-id="${item.id}">
+                            ▶ Play
+                        </button>
+                    </td>
+                `;
+                resultsBody.appendChild(tr);
             });
+
+            attachPlayButtons();
+        })
+        .catch(err => {
+            console.error(err);
+            statusMessage.style.display = "block";
+            statusMessage.innerText = "Error connecting to server.";
+        });
     });
+
 
     function attachPlayButtons() {
         document.querySelectorAll(".play-btn").forEach(btn => {
@@ -66,25 +67,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: `action=get_audio&id=${encodeURIComponent(id)}`
                 })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status !== "ok") {
-                            alert(data.message || "Audio not available.");
-                            return;
-                        }
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status !== "ok") {
+                        alert(data.message || "Audio not available.");
+                        return;
+                    }
 
-                        document.getElementById("qaModalTitle").innerText = data.title;
-                        document.getElementById("qaAudioSource").src = data.audio_url;
+                    document.getElementById("qaModalTitle").innerText = data.title;
+                    document.getElementById("qaAudioSource").src = data.audio_url;
 
-                        const audioTag = document.getElementById("qaAudio");
-                        audioTag.load();
-
-                        $("#qaModal").modal("show");
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert("Failed to load audio.");
-                    });
+                    const audioTag = document.getElementById("qaAudio");
+                    audioTag.load();
+                    $("#qaModal").modal("show");
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Failed to load audio.");
+                });
             });
         });
     }
