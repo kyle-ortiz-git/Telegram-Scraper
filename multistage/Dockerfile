@@ -1,54 +1,54 @@
-# ============================
-# 1) Build stage for Composer
-# ============================
-FROM php:8.3-cli AS builder
-
-RUN apt-get update && apt-get install -y git unzip
-
-WORKDIR /app
-
-# Copy only composer files
-COPY app/composer.json app/composer.lock* ./
-
-# Install composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-# Install PHP dependencies
-RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader
-
-
-# ============================
-# 2) Production stage
-# ============================
+# Use the official PHP 8.3 image with Apache
 FROM php:8.3-apache
 
+# Set working directories
 WORKDIR /var/www/html
 
-# Enable PHP extensions
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# ------------------------------------------------------------
+# 1️ Install system dependencies & PHP extensions
+# ------------------------------------------------------------
+RUN apt-get update && apt-get installed -y \
+    libpng-dev \
+    zip \
+    unzip \
+    git \
+    python3 \
+    python3-pip \
+    ffmpeg \
+    build-essential \
+    python3-dev \
+ && docker-php-ext-install pdo pdo_mysql mysqli \
+ && a2enmod rewrite \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
-# Copy vendor from builder
-COPY --from=builder /app/vendor /var/www/html/vendor
+# ------------------------------------------------------------
+# 2️ Install Composer (cached globally)
+# ------------------------------------------------------------
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Copy backend PHP files ONLY
-COPY app/process.php /var/www/html/
-COPY app/script.js /var/www/html/
-COPY app/.env /var/www/html/
+# ------------------------------------------------------------
+# 3️ Copy dependency manifests *only* first (for cache)
+# ------------------------------------------------------------
+COPY ./app/composer.json ./app/composer.lock* /var/www/html/
+COPY ./requirements.txt /opt/requirements.txt
 
-# OPTIONAL: if you expect more PHP files, add them here
-# COPY app/somefile.php /var/www/html/
+# ------------------------------------------------------------
+# 4️ Install PHP & Python dependencies (cached)
+# ------------------------------------------------------------
+WORKDIR /var/www/html
+RUN composer install --no-dev --optimize-autoloader --no-interaction || true
 
-# Remove ANY existing index.html (old PHP frontend)
-RUN rm -f /var/www/html/index.html
+WORKDIR /opt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install --no-cache-dir --break-system-packages audioop-lts && \
+    pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
 
-# ==========================================
-# COPY THE REACT BUILD (THIS MUST BE LAST)
-# ==========================================
-COPY react/dist/ /var/www/html/
+# ------------------------------------------------------------
+# 5️ Copy application source code (invalidate cache only here)
+# ------------------------------------------------------------
+COPY ./app /var/www/html
+COPY ./telegram_scraping /opt/telegram_scraping
 
-# Fix permissions
-RUN chown -R www-data:www-data /var/www/html
-
-EXPOSE 80
-
-CMD ["apache2-foreground"]
+# ------------------------------------------------------------
+# 6️ Permissions
