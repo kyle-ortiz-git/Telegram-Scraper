@@ -48,6 +48,14 @@ if ($action === 'search') {
 
 $conn->close();
 
+/**
+ * Handle search requests.
+ * Parameters:
+ *   - query (string)
+ *   - mode  (title|both)
+ *
+ * Uses table: Question (ID, Title, Date, Transcription)
+ */
 function handle_search(mysqli $conn): void
 {
     $query = trim($_POST['query'] ?? '');
@@ -115,7 +123,14 @@ function handle_search(mysqli $conn): void
     ]);
 }
 
-
+/**
+ * Handle get_audio requests.
+ * Parameters:
+ *   - id (int)
+ *
+ * Uses DB Date + Title and S3 listObjects to find the best-matching MP3
+ * for that question. Returns a pre-signed URL because the bucket is private.
+ */
 function handle_get_audio(mysqli $conn, string $bucket, string $aws_region, string $s3_prefix): void
 {
     $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
@@ -154,11 +169,14 @@ function handle_get_audio(mysqli $conn, string $bucket, string $aws_region, stri
     $title = $row['Title'];
     $date  = $row['Date'];
 
+    // Build S3 client (credentials are taken from environment / IAM role)
     $s3 = new S3Client([
         'version' => 'latest',
         'region'  => $aws_region
     ]);
 
+    // Keys look like:
+    //   initial-splits/2022-29-11 - Ruling of death benefits.mp3
     $prefix = $s3_prefix . $date . ' - ';
 
     try {
@@ -189,6 +207,7 @@ function handle_get_audio(mysqli $conn, string $bucket, string $aws_region, stri
     foreach ($objects['Contents'] as $object) {
         $key = $object['Key'];
 
+        // Get the part after "YYYY-XX-YY - " and before ".mp3"
         $basename   = basename($key, '.mp3');
         $titlePart  = preg_replace('/^\d{4}-\d{2}-\d{2}\s*-\s*/', '', $basename);
         $normTitle  = normalize_title($titlePart);
@@ -208,12 +227,14 @@ function handle_get_audio(mysqli $conn, string $bucket, string $aws_region, stri
         return;
     }
 
+    // Create a pre-signed URL (since bucket is private)
     try {
         $cmd = $s3->getCommand('GetObject', [
             'Bucket' => $bucket,
             'Key'    => $bestKey,
         ]);
 
+        // Link valid for 20 minutes (adjust as needed)
         $request  = $s3->createPresignedRequest($cmd, '+20 minutes');
         $audioUrl = (string)$request->getUri();
     } catch (Exception $e) {
@@ -231,10 +252,18 @@ function handle_get_audio(mysqli $conn, string $bucket, string $aws_region, stri
     ]);
 }
 
+/**
+ * Normalize a title for fuzzy comparison:
+ * - lowercase
+ * - remove punctuation
+ * - collapse whitespace
+ */
 function normalize_title(string $title): string
 {
     $title = mb_strtolower($title, 'UTF-8');
+    // Keep letters, numbers, and spaces only
     $title = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $title);
+    // Collapse whitespace
     $title = preg_replace('/\s+/u', ' ', $title);
     return trim($title);
 }

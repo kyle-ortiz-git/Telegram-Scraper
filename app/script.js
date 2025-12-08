@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
         statusMessage.innerText = "Searching...";
 
         const query = document.getElementById("query").value.trim();
-        const mode = document.querySelector('input[name="mode"]:checked').value;
+        const mode = document.querySelector("input[name='mode']:checked").value;
 
         if (query === "") {
             statusMessage.innerText = "Please enter a search term.";
@@ -21,46 +21,48 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("process.php", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `action=search&query=${encodeURIComponent(query)}&mode=${mode}`
+            body: `action=search&query=${encodeURIComponent(query)}&mode=${encodeURIComponent(mode)}`
         })
-        .then(res => res.json())
-        .then(data => {
-            statusMessage.style.display = "none";
-            resultsBody.innerHTML = "";
+            .then(res => res.json())
+            .then(data => {
+                statusMessage.style.display = "none";
+                resultsBody.innerHTML = "";
 
-            if (data.status !== "ok" || !Array.isArray(data.results) || data.results.length === 0) {
-                noResults.style.display = "block";
-                return;
-            }
+                if (data.status !== "ok" || !Array.isArray(data.results) || data.results.length === 0) {
+                    noResults.style.display = "block";
+                    return;
+                }
 
-            data.results.forEach(item => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${item.id}</td>
-                    <td>${item.title}</td>
-                    <td>${item.snippet}</td>
-                    <td class="text-right">
-                        <button class="btn btn-sm btn-primary play-btn" data-id="${item.id}">
-                            ▶ Play
-                        </button>
-                    </td>
-                `;
-                resultsBody.appendChild(tr);
+                data.results.forEach(item => {
+                    const tr = document.createElement("tr");
+
+                    tr.innerHTML = `
+                        <td>${item.id}</td>
+                        <td>${item.title}</td>
+                        <td>${item.snippet}</td>
+                        <td class="audio-cell">
+                            <button class="btn btn-sm btn-primary play-btn" data-id="${item.id}">
+                                ▶ Play
+                            </button>
+                        </td>
+                    `;
+
+                    resultsBody.appendChild(tr);
+                });
+
+                attachPlayButtons();
+            })
+            .catch(err => {
+                console.error(err);
+                statusMessage.style.display = "block";
+                statusMessage.innerText = "Error connecting to server.";
             });
-
-            attachPlayButtons();
-        })
-        .catch(err => {
-            console.error(err);
-            statusMessage.style.display = "block";
-            statusMessage.innerText = "Error connecting to server.";
-        });
     });
-
 
     function attachPlayButtons() {
         document.querySelectorAll(".play-btn").forEach(btn => {
-            btn.addEventListener("click", function () {
+            btn.addEventListener("click", function (e) {
+                e.preventDefault();
                 const id = this.dataset.id;
 
                 fetch("process.php", {
@@ -68,24 +70,26 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: `action=get_audio&id=${encodeURIComponent(id)}`
                 })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status !== "ok") {
-                        alert(data.message || "Audio not available.");
-                        return;
-                    }
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status !== "ok") {
+                            alert(data.message || "Audio not available.");
+                            return;
+                        }
 
-                    document.getElementById("qaModalTitle").innerText = data.title;
-                    document.getElementById("qaAudioSource").src = data.audio_url;
+                        const modalTitle = document.getElementById("qaModalTitle");
+                        const audioSrc = document.getElementById("qaAudioSource");
+                        const audioTag = document.getElementById("qaAudio");
 
-                    const audioTag = document.getElementById("qaAudio");
-                    audioTag.load();
-                    $("#qaModal").modal("show");
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert("Failed to load audio.");
-                });
+                        modalTitle.innerText = data.title;
+                        audioSrc.src = data.audio_url;
+                        audioTag.load();
+                        $("#qaModal").modal("show");
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert("Failed to load audio.");
+                    });
             });
         });
     }

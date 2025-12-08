@@ -1,54 +1,41 @@
-# Use the official PHP 8.3 image with Apache
-FROM php:8.3-apache
+# Build stage: Install Composer dependencies
+FROM php:8.3-cli AS builder
 
-# Set working directories
-WORKDIR /var/www/html
+# Install necessary packages
+RUN apt-get update && apt-get install -y git unzip
 
-# ------------------------------------------------------------
-# 1️ Install system dependencies & PHP extensions
-# ------------------------------------------------------------
-RUN apt-get update && apt-get installed -y \
-    libpng-dev \
-    zip \
-    unzip \
-    git \
-    python3 \
-    python3-pip \
-    ffmpeg \
-    build-essential \
-    python3-dev \
- && docker-php-ext-install pdo pdo_mysql mysqli \
- && a2enmod rewrite \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+# Set working directory
+WORKDIR /app
 
-# ------------------------------------------------------------
-# 2️ Install Composer (cached globally)
-# ------------------------------------------------------------
+# Copy composer.json and composer.lock if it exists
+COPY composer.json ./
+
+# Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# ------------------------------------------------------------
-# 3️ Copy dependency manifests *only* first (for cache)
-# ------------------------------------------------------------
-COPY ./app/composer.json ./app/composer.lock* /var/www/html/
-COPY ./requirements.txt /opt/requirements.txt
+# Install dependencies with no interaction
+RUN composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader --no-suggest
 
-# ------------------------------------------------------------
-# 4️ Install PHP & Python dependencies (cached)
-# ------------------------------------------------------------
+# Production stage: Only copy what is needed for running the application
+FROM php:8.3-apache
+
+# Set working directory
 WORKDIR /var/www/html
-RUN composer install --no-dev --optimize-autoloader --no-interaction || true
 
-WORKDIR /opt
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 install --no-cache-dir --break-system-packages audioop-lts && \
-    pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
+# Copy the installed dependencies from the builder stage
+COPY --from=builder /app/vendor /var/www/html/vendor
 
-# ------------------------------------------------------------
-# 5️ Copy application source code (invalidate cache only here)
-# ------------------------------------------------------------
-COPY ./app /var/www/html
-COPY ./telegram_scraping /opt/telegram_scraping
+# Copy the rest of the application files
+COPY . .
 
-# ------------------------------------------------------------
-# 6️ Permissions
+# Install necessary PHP extensions
+RUN docker-php-ext-install mysqli pdo pdo_mysql
+
+# Set the correct permissions
+RUN chown -R www-data:www-data /var/www/html
+
+# Expose port 80
+EXPOSE 80
+
+# Start Apache in the foreground
+CMD ["apache2-foreground"]

@@ -23,24 +23,18 @@ RUN apt-get update && apt-get install -y \
  && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
-# 2️ Install Composer
+# 2️ Install Composer (cached globally)
 # ------------------------------------------------------------
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # ------------------------------------------------------------
-# 3️ Copy manifests (cache layer)
+# 3️ Copy dependency manifests *only* first (for cache)
 # ------------------------------------------------------------
 COPY ./app/composer.json ./app/composer.lock* /var/www/html/
 COPY ./requirements.txt /opt/requirements.txt
 
 # ------------------------------------------------------------
-# 4️ Copy application source code (this overwrites previous files)
-# ------------------------------------------------------------
-COPY ./app /var/www/html
-COPY ./telegram_scraping /opt/telegram_scraping
-
-# ------------------------------------------------------------
-# 5️ Install PHP & Python dependencies AFTER app files are present
+# 4️ Install PHP & Python dependencies (cached)
 # ------------------------------------------------------------
 WORKDIR /var/www/html
 RUN composer install --no-dev --optimize-autoloader --no-interaction || true
@@ -49,6 +43,12 @@ WORKDIR /opt
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install --no-cache-dir --break-system-packages audioop-lts && \
     pip3 install --no-cache-dir --break-system-packages -r /opt/requirements.txt
+
+# ------------------------------------------------------------
+# 5️ Copy application source code (invalidate cache only here)
+# ------------------------------------------------------------
+COPY ./app /var/www/html
+COPY ./telegram_scraping /opt/telegram_scraping
 
 # ------------------------------------------------------------
 # 6️ Permissions
@@ -66,5 +66,7 @@ EXPOSE 80
 # ------------------------------------------------------------
 CMD ["bash", "-c", "python3 /opt/telegram_scraping/scraping.py & apache2-foreground"]
 
-# Docker ENV
-COPY .env /var/www/html/.env
+
+
+#DOCKER ENV
+COPY .env /app/.env
