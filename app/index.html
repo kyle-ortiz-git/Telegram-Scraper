@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Live Q&A Search</title>
 
+    <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet"/>
 
     <style>
@@ -24,6 +27,7 @@
             max-width: 1100px;
             margin: 40px auto;
             border: 1px solid #d9e6e5;
+
             min-height: calc(100vh - 80px);
             display: flex;
             flex-direction: column;
@@ -63,6 +67,17 @@
             font-size: 1.1rem;
         }
 
+        .audio-cell {
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .play-btn {
+            background-color: #1e7a7a !important;
+            border-color: #1e7a7a !important;
+            color: #ffffff !important;
+        }
+
         .results-container {
             flex: 1;
             overflow-y: auto;
@@ -73,12 +88,12 @@
 <body>
     <div class="container">
         <div class="qna-widget">
-            <h2>Live Q&A Search</h2>
+            <h2>Live Q&amp;A Search</h2>
 
             <form id="searchForm" class="mb-3">
                 <div class="form-row align-items-center">
 
-                    <div class="col-sm-12 col-md-9 mb-2">
+                    <div class="col-sm-12 col-md-7 mb-2">
                         <input
                             type="text"
                             class="form-control"
@@ -90,6 +105,34 @@
                     </div>
 
                     <div class="col-sm-12 col-md-3 mb-2">
+                        <div class="form-check form-check-inline">
+                            <input
+                                class="form-check-input"
+                                type="radio"
+                                name="mode"
+                                id="modeTitle"
+                                value="title"
+                                checked
+                            />
+                            <label class="form-check-label" for="modeTitle">
+                                Title only
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input
+                                class="form-check-input"
+                                type="radio"
+                                name="mode"
+                                id="modeBoth"
+                                value="both"
+                            />
+                            <label class="form-check-label" for="modeBoth">
+                                Title &amp; Transcript
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-12 col-md-2 mb-2">
                         <button type="submit" class="btn btn-primary btn-block">
                             Search
                         </button>
@@ -104,7 +147,7 @@
                     <thead>
                         <tr>
                             <th style="width:60px;">ID</th>
-                            <th>Question!</th>
+                            <th>Question</th>
                             <th style="width:35%;">Date</th>
                             <th style="width:140px;" class="text-right">Audio</th>
                         </tr>
@@ -119,7 +162,15 @@
         </div>
     </div>
 
-    <div class="modal fade" id="qaModal" tabindex="-1" role="dialog">
+    <!-- Modal -->
+    <div
+        class="modal fade"
+        id="qaModal"
+        tabindex="-1"
+        role="dialog"
+        aria-labelledby="qaModalTitle"
+        aria-hidden="true"
+    >
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -137,10 +188,12 @@
         </div>
     </div>
 
+    <!-- JS libraries -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
+    <!-- App script -->
     <script src="script.js"></script>
 </body>
 </html>

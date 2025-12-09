@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
         statusMessage.innerText = "Searching...";
 
         const query = document.getElementById("query").value.trim();
-        const mode = "both"; // FORCE Title + Transcript search
+        const mode = document.querySelector("input[name='mode']:checked").value;
 
         if (query === "") {
             statusMessage.innerText = "Please enter a search term.";
@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("process.php", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `action=search&query=${encodeURIComponent(query)}&mode=${mode}`
+            body: `action=search&query=${encodeURIComponent(query)}&mode=${encodeURIComponent(mode)}`
         })
             .then(res => res.json())
             .then(data => {
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td>${item.id}</td>
                         <td>${item.title}</td>
                         <td>${item.date}</td>
-                        <td class="audio-cell text-right">
+                        <td class="audio-cell">
                             <button class="btn btn-sm btn-primary play-btn" data-id="${item.id}">
                                 ▶ Play
                             </button>
