@@ -90,3 +90,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+// Stop audio when modal is closed
+$('#qaModal').on('hidden.bs.modal', function () {
+    const audio = document.getElementById('qaAudio');
+    if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+    }
+});
