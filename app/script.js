@@ -11,9 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
         statusMessage.innerText = "Searching...";
 
         const query = document.getElementById("query").value.trim();
-        
-        // ALWAYS use both title + transcript
-        const mode = "both";
+        const mode = document.querySelector("input[name='mode']:checked").value;
 
         if (query === "") {
             statusMessage.innerText = "Please enter a search term.";
@@ -23,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("process.php", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `action=search&query=${encodeURIComponent(query)}&mode=${mode}`
+            body: `action=search&query=${encodeURIComponent(query)}&mode=${encodeURIComponent(mode)}`
         })
             .then(res => res.json())
             .then(data => {
@@ -56,13 +54,15 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .catch(err => {
                 console.error(err);
+                statusMessage.style.display = "block";
                 statusMessage.innerText = "Error connecting to server.";
             });
     });
 
     function attachPlayButtons() {
         document.querySelectorAll(".play-btn").forEach(btn => {
-            btn.addEventListener("click", function () {
+            btn.addEventListener("click", function (e) {
+                e.preventDefault();
                 const id = this.dataset.id;
 
                 fetch("process.php", {
@@ -77,10 +77,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             return;
                         }
 
-                        document.getElementById("qaModalTitle").innerText = data.title;
-                        document.getElementById("qaAudioSource").src = data.audio_url;
-
+                        const modalTitle = document.getElementById("qaModalTitle");
+                        const audioSrc = document.getElementById("qaAudioSource");
                         const audioTag = document.getElementById("qaAudio");
+
+                        modalTitle.innerText = data.title;
+                        audioSrc.src = data.audio_url;
                         audioTag.load();
                         $("#qaModal").modal("show");
                     })
