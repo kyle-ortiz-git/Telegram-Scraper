@@ -54,15 +54,13 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .catch(err => {
                 console.error(err);
-                statusMessage.style.display = "block";
                 statusMessage.innerText = "Error connecting to server.";
             });
     });
 
     function attachPlayButtons() {
         document.querySelectorAll(".play-btn").forEach(btn => {
-            btn.addEventListener("click", function (e) {
-                e.preventDefault();
+            btn.addEventListener("click", function () {
                 const id = this.dataset.id;
 
                 fetch("process.php", {
@@ -77,12 +75,10 @@ document.addEventListener("DOMContentLoaded", () => {
                             return;
                         }
 
-                        const modalTitle = document.getElementById("qaModalTitle");
-                        const audioSrc = document.getElementById("qaAudioSource");
-                        const audioTag = document.getElementById("qaAudio");
+                        document.getElementById("qaModalTitle").innerText = data.title;
+                        document.getElementById("qaAudioSource").src = data.audio_url;
 
-                        modalTitle.innerText = data.title;
-                        audioSrc.src = data.audio_url;
+                        const audioTag = document.getElementById("qaAudio");
                         audioTag.load();
                         $("#qaModal").modal("show");
                     })
