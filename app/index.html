@@ -10,11 +10,11 @@
 
     <style>
         body {
-    font-family: "Cormorant Garamond", serif;
-    background:
-        linear-gradient(
-                 to bottom,
-                 rgba(246, 251, 255, 0.8) 0%,
+            font-family: "Cormorant Garamond", serif;
+            background:
+                linear-gradient(
+                    to bottom,
+                    rgba(246, 251, 255, 0.8) 0%,
                     rgba(231, 254, 255, 0.95) 100%
                 ),
                 url("images/bckground.png");
@@ -73,6 +73,18 @@
             font-size: 1.1rem;
         }
 
+        /* Make Question column readable (remove Google font) */
+        td.question-col {
+            font-family: Arial, sans-serif;
+            font-size: 1.05rem;
+        }
+
+        /* Center Date column completely */
+        th.date-col,
+        td.date-col {
+            text-align: center;
+        }
+
         .results-container {
             flex: 1;
             overflow-y: auto;
@@ -87,7 +99,6 @@
 
             <form id="searchForm" class="mb-3">
                 <div class="form-row align-items-center">
-
                     <div class="col-sm-12 col-md-9 mb-2">
                         <input
                             type="text"
@@ -114,8 +125,8 @@
                     <thead>
                         <tr>
                             <th style="width:60px;">ID</th>
-                            <th>Question</th>
-                            <th style="width:35%;">Date</th>
+                            <th class="question-col">Question</th>
+                            <th class="date-col" style="width:35%;">Date</th>
                             <th style="width:140px;" class="text-right">Audio</th>
                         </tr>
                     </thead>
